@@ -1,8 +1,11 @@
+require("dotenv").config();
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
+const Phone = require("./models/phone");
+const { response } = require("express");
 const app = express();
-
+const PORT = process.env.PORT || 3001;
 app.use(express.json());
 app.use(cors());
 
@@ -20,72 +23,48 @@ const tokenMorgan = morgan((token, request, response) => {
     token.body(request, response),
   ].join(" ");
 });
-let persons = [
-  {
-    id: 1,
-    name: "Arto Hellas",
-    number: "040-123456",
-  },
-  {
-    id: 2,
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
-  },
-  {
-    id: 3,
-    name: "Dan Abramov",
-    number: "12-43-234345",
-  },
-  {
-    id: 4,
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
-  },
-];
-
+// ROUTES GET
 app.get("/info", (request, response) => {
-  const responseText = `
-        <h1>Phonebook has info for ${persons.length} people</h1>
+  Phone.Phone.find({}).then((item) => {
+    const responseText = `
+        <h1>Phonebook has info for ${item.length} people</h1>
         <p>${new Date()}</p>
     `;
-  response.send(responseText);
+    response.send(responseText);
+  });
 });
 
 app.get("/api/persons", (request, response) => {
-  response.json(persons);
+  Phone.Phone.find({}).then((items) => {
+    response.json(items);
+  });
 });
-app.get("/api/persons/:id", (request, response) => {
-  const id = Number(request.params.id);
-  const person = persons.find((person) => person.id === id);
-  if (person) {
-    response.json(person);
-  } else {
-    response.status(404).end();
-  }
+app.get("/api/persons/:id", (request, response, next) => {
+  Phone.Phone.findById(request.params.id)
+    .then((item) => {
+      if (item) {
+        response.json(item);
+      } else {
+        response.status(404).end();
+      }
+    })
+    .catch((error) => {
+      next(error);
+    });
 });
 
 // DELETE
 
-app.delete("/api/persons/:id", (request, response) => {
-  const id = Number(request.params.id);
-  persons = persons.filter((note) => note.id !== id);
-
-  response.status(204).end();
+app.delete("/api/persons/:id", (request, response, next) => {
+  Phone.Phone.findByIdAndRemove(request.params.id)
+    .then((result) => {
+      response.status(204).end();
+    })
+    .catch((error) => next(error));
 });
 
 // POST
 
-const numRandom = () => {
-  return Math.floor(Math.random() * 100);
-};
-const generateId = () => {
-  const newId = numRandom();
-  const idFound = persons.some((item) => item.id == newId);
-  while (idFound) {
-    newId = numRandom();
-  }
-  return newId;
-};
 app.post("/api/persons", tokenMorgan, (request, response) => {
   const body = request.body;
   if (!body.name) {
@@ -98,26 +77,45 @@ app.post("/api/persons", tokenMorgan, (request, response) => {
       error: "number missing",
     });
   }
-  const nameFound = persons.some(
-    (item) => item.name.toLowerCase() == body.name.toLowerCase()
-  );
-  if (nameFound) {
-    return response.status(400).json({
-      error: "name must be unique",
-    });
-  }
-  const person = {
-    id: generateId(),
+  const phone = new Phone.Phone({
     name: body.name,
     number: body.number,
-  };
+  });
 
-  persons = persons.concat(person);
-
-  response.json(person);
+  phone.save().then((savedPhone) => {
+    response.json(savedPhone);
+  });
 });
+// PUT
+app.put("/api/persons/:id", (request, response, next) => {
+  const { name, number } = request.body;
+  Phone.Phone.findByIdAndUpdate(
+    request.params.id,
+    { name, number },
+    { new: true, runValidators: true, context: "query" }
+  )
+    .then((updatePhone) => {
+      response.json(updatePhone);
+    })
+    .catch((error) => next(error));
+});
+//ERROR
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message);
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  if (error.name === "CastError") {
+    return response.status(400).send({ error: "malformatted id" });
+  } else if (error.name === "ValidationError") {
+    return response.status(400).json({ error: error.message });
+  }
+
+  next(error);
+};
+
+app.use(errorHandler);
+//CONNECT DATABASE
+Phone.connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
 });
