@@ -65,26 +65,20 @@ app.delete("/api/persons/:id", (request, response, next) => {
 
 // POST
 
-app.post("/api/persons", tokenMorgan, (request, response) => {
+app.post("/api/persons", tokenMorgan, (request, response, next) => {
   const body = request.body;
-  if (!body.name) {
-    return response.status(400).json({
-      error: "name missing",
-    });
-  }
-  if (!body.number) {
-    return response.status(400).json({
-      error: "number missing",
-    });
-  }
+
   const phone = new Phone.Phone({
     name: body.name,
     number: body.number,
   });
 
-  phone.save().then((savedPhone) => {
-    response.json(savedPhone);
-  });
+  phone
+    .save()
+    .then((savedPhone) => {
+      response.json(savedPhone);
+    })
+    .catch((error) => next(error));
 });
 // PUT
 app.put("/api/persons/:id", (request, response, next) => {
