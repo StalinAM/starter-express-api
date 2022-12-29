@@ -1,13 +1,10 @@
-# starter-express-api
+# Phone Directory
 
-This is the simplest possible nodejs api using express that responds to any request with:
-
-```
-Yo!
-```
-
-### Deploy it in 7 seconds:
-
-[![Deploy to Cyclic](https://deploy.cyclic.app/button.svg)](https://deploy.cyclic.app/)
+In this repository is the backend part of the phone directory:
 
 - Link Api - [Api](https://kind-red-turtle-tie.cyclic.app/api/persons)
+
+## Links Frontend Directory
+
+- [Repo](https://github.com/StalinAM/interfaz-api)
+- [Live](https://interfaz-api.vercel.app/)

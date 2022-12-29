@@ -3,7 +3,6 @@ const morgan = require("morgan");
 const cors = require("cors");
 const Phone = require("./models/phone");
 const { response } = require("express");
-require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 app.use(express.json());
